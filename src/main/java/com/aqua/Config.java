@@ -38,7 +38,6 @@ public class Config {
      */
     public static int FOOD_START_HOURS;
     public static int FOOD_STOP_HOURS;
-    public static int FOOD_START_MINUTES;
     public static int FOOD_NUMBER_OF_FEEDINGS;
 
     public static void loadDatabaseConfig() {
@@ -59,7 +58,6 @@ public class Config {
         OXYGEN_START_MINUTES = timeSettings.getProperty("OxygenStartMinutes", 0);
         FOOD_START_HOURS = timeSettings.getProperty("FeedingStartHours", 10);
         FOOD_STOP_HOURS = timeSettings.getProperty("FeedingStopHours", 22);
-        FOOD_START_MINUTES = timeSettings.getProperty("FeedingStartMinutes", 0);
         FOOD_NUMBER_OF_FEEDINGS = timeSettings.getProperty("NumberOfFeeding", 1);
     }
 

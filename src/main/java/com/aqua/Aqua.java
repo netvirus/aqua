@@ -1,8 +1,9 @@
 package com.aqua;
 
+import com.aqua.sql.AquaDatabaseManager;
+import com.aqua.sql.migrations.DatabaseMigrationManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.aqua.sql.migrations.DatabaseMigrationManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -14,17 +15,35 @@ import java.util.Date;
 public class Aqua {
     private static final Logger LOGGER = LoggerFactory.getLogger(Aqua.class);
 
+    private static int _feedingFirstHour;
+    private static int _feedingSecondHour;
     private static boolean _light = false;
-
     private static boolean _oxygen = false;
-
     private static boolean _food = false;
 
-    public static void main(String[] args) {
+    private static final AquaDatabaseManager aquaDatabaseManager = new AquaDatabaseManager();
+
+    public static void main(String[] args) throws Exception {
         // Загружаем параметры из конфигов
         Config.load();
         // Создаем таблицы в SQL базе, если их там нет
         DatabaseMigrationManager.getInstance();
+
+        // Проверяем кормили ли мы сегодня нужное кол-во раз или еще нет
+        if (aquaDatabaseManager.selectTotalCountOfFeeding() >= Config.FOOD_NUMBER_OF_FEEDINGS) {
+            // Если покормили то ставим флаг в True чтоб больше не кормить
+            setFoodState(true);
+        } else {
+            // Если не докормили или не кормили вообще то определяем время кормления
+            if (Config.FOOD_NUMBER_OF_FEEDINGS > 1) {
+                int midOfTime = Config.FOOD_START_HOURS + (int) Math.floor((Config.FOOD_STOP_HOURS - Config.FOOD_START_HOURS) / 2);
+                _feedingFirstHour = Config.FOOD_START_HOURS + 1;
+                _feedingSecondHour = midOfTime + 1;
+            } else if (Config.FOOD_NUMBER_OF_FEEDINGS < 2) {
+                _feedingFirstHour = Config.FOOD_START_HOURS;
+                _feedingSecondHour = Config.FOOD_STOP_HOURS;
+            }
+        }
 
         while (true) {
             /*
@@ -41,8 +60,6 @@ public class Aqua {
                 LOGGER.info("Включаем освещение. - Доброе утро!!!");
                 // Меняем состояние флга "Освещения" на Включено
                 setLightingState(true);
-                // Меняем состояние флга "Кормление" на Включено
-                setFoodState(false); // TODO Нужно хранить и брать состояние из базы, вдруг это повторный запуск сегодня!
             }
             /*
              * Проверяем необходимость включения или выключения подачи кислорода
@@ -64,13 +81,21 @@ public class Aqua {
              * Проверяем необходимость включения кормушки
              * */
             // Если False то нужно покормить
-            final boolean _foodTimer = checkTime(Config.FOOD_START_HOURS, Config.FOOD_STOP_HOURS, Config.FOOD_START_MINUTES);
-            if (!_food && _foodTimer) {
-                LOGGER.info("Включаем кормушку. Ом ном ном!!!");
-                // Меняем состояние флга "Подача корма" на Включено. Значит покормлено.
-                setFoodState(true);
+            if (!_food && checkTimeRange(_feedingFirstHour, _feedingSecondHour)) {
+                if (aquaDatabaseManager.selectTotalCountOfFeeding() < Config.FOOD_NUMBER_OF_FEEDINGS) {
+                    LOGGER.info("Подаем сигнал на реле с кормушкой");
+                    aquaDatabaseManager.saveFeeding();
+                } else {
+                    // Если все попытки совершены то выставляем флаг в True
+                    setFoodState(true);
+                }
             }
         }
+    }
+
+    public static boolean checkTimeRange(int hourFirst, int hourSecond) {
+        int currentHours = Integer.parseInt(new SimpleDateFormat("HH").format(new Date()));
+        return ((currentHours >= hourFirst && currentHours < hourSecond) || (currentHours >= hourSecond) );
     }
 
     public static boolean checkTime(int startH, int stopH, int startM) {
