@@ -17,6 +17,8 @@ public class Aqua {
 
     private static int _feedingFirstHour;
     private static int _feedingSecondHour;
+    private static boolean _feedingFirstState = false;
+    private static boolean _feedingSecondState = false;
     private static boolean _light = false;
     private static boolean _oxygen = false;
     private static boolean _food = false;
@@ -81,21 +83,27 @@ public class Aqua {
              * Проверяем необходимость включения кормушки
              * */
             // Если False то нужно покормить
-            if (!_food && checkTimeRange(_feedingFirstHour, _feedingSecondHour)) {
-                if (aquaDatabaseManager.selectTotalCountOfFeeding() < Config.FOOD_NUMBER_OF_FEEDINGS) {
+            if (!_food) {
+                if ((!_feedingFirstState && checkTime(_feedingFirstHour)) || (!_feedingSecondState && checkTime(_feedingSecondHour))) {
                     LOGGER.info("Подаем сигнал на реле с кормушкой");
                     aquaDatabaseManager.saveFeeding();
-                } else {
-                    // Если все попытки совершены то выставляем флаг в True
-                    setFoodState(true);
+
+                    int countOfFeedings = aquaDatabaseManager.selectTotalCountOfFeeding();
+                    if (countOfFeedings == Config.FOOD_NUMBER_OF_FEEDINGS) {
+                        // Если все попытки совершены то выставляем флаг в True
+                        setFoodState(true);
+                    } else if (countOfFeedings == 1 && Config.FOOD_NUMBER_OF_FEEDINGS > 1) {
+                        // У нас больше чем одно кормление, выставляем флаг первого кормления в True
+                        _feedingFirstState = true;
+                    }
                 }
             }
         }
     }
 
-    public static boolean checkTimeRange(int hourFirst, int hourSecond) {
+    public static boolean checkTime(int hour) {
         int currentHours = Integer.parseInt(new SimpleDateFormat("HH").format(new Date()));
-        return ((currentHours >= hourFirst && currentHours < hourSecond) || (currentHours >= hourSecond) );
+        return (currentHours >= hour);
     }
 
     public static boolean checkTime(int startH, int stopH, int startM) {
