@@ -55,18 +55,6 @@ public class Aqua {
                 setFoodState(true);
         }
 
-        if ((count == 1 && Config.FOOD_NUMBER_OF_FEEDINGS == 1) || (count == 2 && Config.FOOD_NUMBER_OF_FEEDINGS == 2)) {
-
-        } else if (count == 1 && Config.FOOD_NUMBER_OF_FEEDINGS > 1) {
-
-            // Если не докормили или не кормили вообще то определяем время кормления
-            if (Config.FOOD_NUMBER_OF_FEEDINGS > 1) {
-
-            } else if (Config.FOOD_NUMBER_OF_FEEDINGS < 2) {
-
-            }
-        }
-
         while (true) {
             /*
              * Проверяем необходимость включения или выключения освещения
