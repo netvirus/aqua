@@ -32,18 +32,38 @@ public class Aqua {
         DatabaseMigrationManager.getInstance();
 
         // Проверяем кормили ли мы сегодня нужное кол-во раз или еще нет
-        if (aquaDatabaseManager.selectTotalCountOfFeeding() >= Config.FOOD_NUMBER_OF_FEEDINGS) {
-            // Если покормили то ставим флаг в True чтоб больше не кормить
-            setFoodState(true);
-        } else {
-            // Если не докормили или не кормили вообще то определяем время кормления
-            if (Config.FOOD_NUMBER_OF_FEEDINGS > 1) {
-                int midOfTime = Config.FOOD_START_HOURS + (int) Math.floor((Config.FOOD_STOP_HOURS - Config.FOOD_START_HOURS) / 2);
-                _feedingFirstHour = Config.FOOD_START_HOURS + 1;
-                _feedingSecondHour = midOfTime + 1;
-            } else if (Config.FOOD_NUMBER_OF_FEEDINGS < 2) {
+        final int count = aquaDatabaseManager.selectTotalCountOfFeeding();
+        if (count == 0) {
+            if (Config.FOOD_NUMBER_OF_FEEDINGS == 1) {
                 _feedingFirstHour = Config.FOOD_START_HOURS;
                 _feedingSecondHour = Config.FOOD_STOP_HOURS;
+            } else if (Config.FOOD_NUMBER_OF_FEEDINGS == 2) {
+                _feedingFirstHour = Config.FOOD_START_HOURS + 1;
+                _feedingSecondHour = getSecondHours();
+            }
+        } else if (count == 1) {
+            if (Config.FOOD_NUMBER_OF_FEEDINGS == 1) {
+                // Если покормили то ставим флаг в True чтоб больше не кормить
+                setFoodState(true);
+            } else if (Config.FOOD_NUMBER_OF_FEEDINGS == 2) {
+                _feedingSecondHour = getSecondHours();
+                // Один раз уже покормили
+                _feedingFirstState = true;
+            }
+        } else if (count == 2) {
+                // Если покормили то ставим флаг в True чтоб больше не кормить
+                setFoodState(true);
+        }
+
+        if ((count == 1 && Config.FOOD_NUMBER_OF_FEEDINGS == 1) || (count == 2 && Config.FOOD_NUMBER_OF_FEEDINGS == 2)) {
+
+        } else if (count == 1 && Config.FOOD_NUMBER_OF_FEEDINGS > 1) {
+
+            // Если не докормили или не кормили вообще то определяем время кормления
+            if (Config.FOOD_NUMBER_OF_FEEDINGS > 1) {
+
+            } else if (Config.FOOD_NUMBER_OF_FEEDINGS < 2) {
+
             }
         }
 
@@ -99,6 +119,10 @@ public class Aqua {
                 }
             }
         }
+    }
+
+    public static int getSecondHours() {
+        return Config.FOOD_START_HOURS + (int) Math.floor((Config.FOOD_STOP_HOURS - Config.FOOD_START_HOURS) / 2) + 1;
     }
 
     public static boolean checkTime(int hour) {
